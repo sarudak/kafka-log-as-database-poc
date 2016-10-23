@@ -1,6 +1,7 @@
 (ns producer.core
   (:require [clojure.java.io :as io]
-            [clj-time.core :as t])
+            [clj-time.core :as t]
+            [cheshire.core :refer :all])
   (:import  [org.apache.kafka.clients.producer KafkaProducer ProducerRecord]
             [java.util Properties])
   (:gen-class))
@@ -13,16 +14,15 @@
                   "key.serializer"          "org.apache.kafka.common.serialization.StringSerializer"
                   "value.serializer"        "org.apache.kafka.common.serialization.StringSerializer"})
 
-(def topic "test")
+(def topic "tasks-test")
 
 (defn gen-properties [props]
   (let [kafka-properties (Properties.)]
     (doall (for [[k v] props] (.put kafka-properties k v)))
     kafka-properties))
 
-(defn produce [data]
-  (let [producer (KafkaProducer. (gen-properties base-config))]
-    (doall (map #(.send producer (ProducerRecord. topic (str %))) data))))
+(defn produce [producer data]
+  (doall (map #(.send producer (ProducerRecord. topic (generate-string %))) data)))
 
 (defn event->message [event]
   (-> event
@@ -37,9 +37,10 @@
 (defn -main
   "Produces 1000 events and then 10 more every 2 seconds"
   [& args]
-  (do
-    (produce (take 1000 task-updates))
+
+  (let [producer (KafkaProducer. (gen-properties base-config))]
+    (produce producer (take 1000 task-updates))
     (loop [remaining-events (drop 1000 task-updates)]
-      (produce (take 10 remaining-events))
+      (produce producer (take 10 remaining-events))
       (Thread/sleep 2000)
       (recur (drop 10 remaining-events)))))

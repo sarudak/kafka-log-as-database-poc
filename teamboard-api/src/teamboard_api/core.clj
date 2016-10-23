@@ -1,7 +1,10 @@
 (ns teamboard-api.core
+  (:require [teamboard-api.web :refer [app start-data-reader]]
+            [ring.adapter.jetty :refer [run-jetty]])
   (:gen-class))
 
-(defn -main
-  "I don't do a whole lot ... yet."
-  [& args]
-  (println "Hello, World!"))
+(defn -main [& args]
+  (println "Starting server")
+  (start-data-reader)
+  (run-jetty app {:port 8180}))
+
