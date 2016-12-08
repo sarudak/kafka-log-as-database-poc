@@ -3,6 +3,7 @@
             [teamboard-api.project-seed :as project-seed]
             [compojure.core :refer :all]
             [compojure.route :as route]
+            [ring.util.json-response :refer [json-response]]
             [ring.middleware.defaults :refer [wrap-defaults api-defaults]]
             [ring.adapter.jetty :refer [run-jetty]])
   (:import  [org.apache.kafka.clients.consumer KafkaConsumer ConsumerRecords ConsumerRecord]
@@ -17,7 +18,7 @@
          (into {}))))
 
 (def base-config {"bootstrap.servers"       "ec2-54-191-31-21.us-west-2.compute.amazonaws.com:9092"
-                  "group.id"                "testing6"
+                  "group.id"                "testing8"
                   "enable.auto.commit"      "true"
                   "auto.commit.interval.ms" "1000"
                   "auto.offset.reset"       "earliest"
@@ -33,7 +34,13 @@
     kafka-properties))
 
 (defn percent->status [percent-complete]
-  (get {0 "Not Started" 100 "Complete"} percent-complete "In Progress"))
+  (cond
+    (not percent-complete) "Not Started"
+    (>= percent-complete 100) "Complete"
+    (>= percent-complete 80) "Testing"
+    (>= percent-complete 30) "In Progress"
+    (>= percent-complete 1) "Analysis"
+    :else "Not Started"))
 
 (defn create-task! [{:keys [taskId projectId name percentComplete]}]
   (do (swap! task-to-project assoc taskId projectId)
@@ -54,7 +61,7 @@
 
 (defn data-reader-loop []
   (let [consumer (KafkaConsumer. (gen-properties base-config))]
-    (.subscribe consumer ["tasks"])
+    (.subscribe consumer ["tasks-demo"])
     (loop []
       (let [messages (seq (.poll consumer 1000))]
         (doall (map update-from! messages))
@@ -64,7 +71,8 @@
   (.start (Thread. data-reader-loop)))
 
 (defroutes app-routes
-           (GET "/project/:id" [id] (generate-string (@project-data id))))
+           (GET "/project/:id" [id] (json-response (@project-data id)))
+           (GET "/task/:id" [id] (json-response (@project-data (@task-to-project id)))))
 
 (def app
   (-> app-routes

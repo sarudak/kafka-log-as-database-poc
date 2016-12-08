@@ -14,7 +14,7 @@
                   "key.serializer"          "org.apache.kafka.common.serialization.StringSerializer"
                   "value.serializer"        "org.apache.kafka.common.serialization.StringSerializer"})
 
-(def topic "tasks-test")
+(def topic "tasks-demo")
 
 (defn gen-properties [props]
   (let [kafka-properties (Properties.)]
@@ -37,10 +37,9 @@
 (defn -main
   "Produces 1000 events and then 10 more every 2 seconds"
   [& args]
-
   (let [producer (KafkaProducer. (gen-properties base-config))]
     (produce producer (take 1000 task-updates))
     (loop [remaining-events (drop 1000 task-updates)]
       (produce producer (take 10 remaining-events))
-      (Thread/sleep 2000)
+      (Thread/sleep 5000)
       (recur (drop 10 remaining-events)))))

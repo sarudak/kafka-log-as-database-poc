@@ -8,6 +8,7 @@
                  [cheshire "5.6.3"]
                  [compojure "1.4.0"]
                  [ring/ring-defaults "0.1.5"]
+                 [ring-json-response "0.2.0"]
                  [ring "1.4.0"]]
   :main ^:skip-aot teamboard-api.core
   :target-path "target/%s"
